@@ -1,39 +1,34 @@
-resource "aws_s3_bucket" "remote-backend-bucket" {
-    bucket = "saucecode-terraform-remote-state-backend-bucket"
-
-    tags = {
-        Name = "Remote Terraform State Store"
-    }
+data "aws_vpc" "default-vpc" {
+  id = "vpc-0380a6b686c64a08d"
 }
 
-resource "aws_s3_bucket_versioning" "s3-backend-versioning" {
-    bucket = aws_s3_bucket.remote-backend-bucket.id
-
-    versioning_configuration {
-        status = "Enabled"
-    }
+data "aws_subnet" "private-subnet" {
+  id = "subnet-0e3d525d09165c241"
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "s3-backend-encryption" {
-  bucket = aws_s3_bucket.remote-backend-bucket.id
+data "aws_ami" "ubuntu" {
+  most_recent = true
 
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm     = "AES256"
-    }
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
 }
 
-resource "aws_dynamodb_table" "terraform-state-lock" {
-    name           = "terraform_state"
-    read_capacity  = 5
-    write_capacity = 5
-    hash_key       = "LockID"
-    attribute {
-        name = "LockID"
-        type = "S"
-    }
-    tags = {
-        "Name" = "DynamoDB Terraform State Lock Table"
-    }
+resource "aws_instance" "web-server" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  associate_public_ip_address = false
+  subnet_id = data.aws_subnet.private-subnet.id
+
+  tags = {
+    Name = "HelloWorld"
+  }
 }
