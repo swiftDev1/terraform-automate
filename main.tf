@@ -6,29 +6,38 @@ data "aws_subnet" "private-subnet" {
   id = "subnet-0e3d525d09165c241"
 }
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
+resource "aws_security_group" "web-server-sg" {
+  name = "web-server-sg"
 }
 
-resource "aws_instance" "web-server" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  associate_public_ip_address = false
-  subnet_id = data.aws_subnet.private-subnet.id
+resource "aws_vpc_security_group_ingress_rule" "web-server-sgrule" {
+  security_group_id = aws_security_group.web-server-sg.id
 
-  tags = {
-    Name = "HelloWorld"
-  }
+  from_port   = 8080
+  to_port     = 8080
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
 }
+
+resource "aws_security_group" "alb-sg" {
+  name = "alb-sg"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb-ingress-rule" {
+  security_group_id = aws_security_group.alb-sg.id
+
+  from_port   = 80
+  to_port     = 80
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "alb-egress-rule" {
+  security_group_id = aws_security_group.alb-sg.id
+
+  cidr_ipv4   = "0.0.0.0/0"
+  from_port   = 0
+  to_port     = 0
+  ip_protocol = "-1"
+}
+
