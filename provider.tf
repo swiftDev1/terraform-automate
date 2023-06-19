@@ -1,11 +1,11 @@
 terraform {
 
-  backend "s3" {
-    bucket         = "saucecode-terraform-remote-state-backend-bucket"
-    key            = "web-app/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform_state"
-  }
+#   backend "s3" {
+#     bucket         = "saucecode-terraform-remote-state-backend-bucket"
+#     key            = "web-app/terraform.tfstate"
+#     region         = "us-east-1"
+#     dynamodb_table = "terraform_state"
+#   }
 
   required_providers {
     aws = {
