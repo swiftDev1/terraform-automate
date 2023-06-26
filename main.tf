@@ -145,3 +145,69 @@ resource "aws_lb_listener" "front_end" {
 #   }
 
 # }
+
+#Create Route53 Resources
+resource "aws_route53_zone" "primary" {
+  name = "paramentora.com"
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = "paramentora.com"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.webserver-lb.dns_name
+    zone_id                = aws_lb.webserver-lb.zone_id
+    evaluate_target_health = true
+  }
+
+  depends_on = [ aws_route53_zone.primary ]
+}
+
+#Create S3 bucket for web-data with versioning and encryption enabled
+resource "aws_s3_bucket" "web-data-bucket" {
+  bucket_prefix = "web-data-bucket"
+  force_destroy = true
+
+  tags = {
+    Name        = "web-data bucket"
+    Environment = "Dev"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "web-data-sse" {
+  bucket = aws_s3_bucket.web-data-bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+     
+      sse_algorithm     = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "web-data-bucket-versioning" {
+  bucket = aws_s3_bucket.web-data-bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+#Create Database Instance
+resource "aws_db_instance" "db_instance" {
+  allocated_storage = 20
+  # This allows any minor version within the major engine_version
+  # defined below, but will also result in allowing AWS to auto
+  # upgrade the minor version of your DB. This may be too risky
+  # in a real production environment.
+  auto_minor_version_upgrade = true
+  storage_type               = "standard"
+  engine                     = "postgres"
+  engine_version             = "12"
+  instance_class             = "db.t2.micro"
+  db_name                    = "mydb"
+  username                   = "foo"
+  password                   = "foobarbaz"
+  skip_final_snapshot        = true
+}
