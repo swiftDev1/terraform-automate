@@ -57,8 +57,8 @@ resource "aws_vpc_security_group_egress_rule" "alb-egress-rule" {
 
 # EC2 Instances
 resource "aws_instance" "instance_1" {
-  ami             = "ami-011899242bb902164" # Ubuntu 20.04 LTS // us-east-1
-  instance_type   = "t2.micro"
+  ami             = var.ami 
+  instance_type   = var.instance_type
   security_groups = [aws_security_group.web-server-sg.name]
   user_data       = <<-EOF
               #!/bin/bash
@@ -66,14 +66,11 @@ resource "aws_instance" "instance_1" {
               python3 -m http.server 8080 &
               EOF
 
-  tags = {
-    "Name" = "Server 1"
-  }
 }
 
 resource "aws_instance" "instance_2" {
-  ami             = "ami-011899242bb902164" # Ubuntu 20.04 LTS // us-east-1
-  instance_type   = "t2.micro"
+  ami             = var.ami
+  instance_type   = var.instance_type
   security_groups = [aws_security_group.web-server-sg.name]
   user_data       = <<-EOF
               #!/bin/bash
@@ -81,9 +78,6 @@ resource "aws_instance" "instance_2" {
               python3 -m http.server 8080 &
               EOF
 
-  tags = {
-    "Name" = "Server 2"
-  }
 }
 
 #Load Balancer Resources
@@ -148,12 +142,12 @@ resource "aws_lb_listener" "front_end" {
 
 #Create Route53 Resources
 resource "aws_route53_zone" "primary" {
-  name = "paramentora.com"
+  name = var.domain
 }
 
 resource "aws_route53_record" "www" {
   zone_id = aws_route53_zone.primary.zone_id
-  name    = "paramentora.com"
+  name    = aws_route53_zone.primary.name
   type    = "A"
 
   alias {
@@ -167,13 +161,9 @@ resource "aws_route53_record" "www" {
 
 #Create S3 bucket for web-data with versioning and encryption enabled
 resource "aws_s3_bucket" "web-data-bucket" {
-  bucket_prefix = "web-data-bucket"
+  bucket_prefix = var.bucket_prefix
   force_destroy = true
 
-  tags = {
-    Name        = "web-data bucket"
-    Environment = "Dev"
-  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "web-data-sse" {
@@ -208,6 +198,6 @@ resource "aws_db_instance" "db_instance" {
   instance_class             = "db.t2.micro"
   db_name                    = "mydb"
   username                   = "foo"
-  password                   = "foobarbaz"
+  password                   = var.db_pass
   skip_final_snapshot        = true
 }
